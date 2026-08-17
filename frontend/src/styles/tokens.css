@@ -1,0 +1,38 @@
+:root {
+  /* Colors — from MediNear design system */
+  --primary: #0f9d78;
+  --primary-foreground: #f5fefb;
+  --background: #fbfefe;
+  --foreground: #12303a;
+  --card: #ffffff;
+  --secondary: #edf6f6;
+  --muted-foreground: #5f7681;
+  --accent: #d3f0ea;
+  --border: #dce7e9;
+  --success: #22a06b;
+  --warning: #e5a13a;
+  --destructive: #dc3b2f;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  /* Fonts */
+  --font-display: 'Sora', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+[data-theme='dark'] {
+  --background: #161e24;
+  --card: #1e2a3b;
+  --foreground: #f7f9fb;
+  --primary: #e6eaf2;
+  --muted-foreground: #9aa8b8;
+  --border: #2c3846;
+  --success: #2fb77c;
+  --warning: #edae4b;
+  --destructive: #ee6a5c;
+}
