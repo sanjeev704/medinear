@@ -30,10 +30,9 @@ export default function Inventory() {
 
   useEffect(() => {
     const load = async () => {
-      const pharmaciesRes = await api.get('/api/pharmacies')
-      const first = pharmaciesRes.data[0]
-      setPharmacy(first || null)
-      if (first) await loadItems(first._id)
+      const me = await api.get('/api/pharmacies/me')
+      setPharmacy(me.data)
+      if (me.data) await loadItems(me.data._id)
       setLoading(false)
     }
     load()

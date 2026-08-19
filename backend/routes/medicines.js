@@ -2,10 +2,11 @@ import express from 'express'
 import Medicine from '../models/Medicine.js'
 import Pharmacy from '../models/Pharmacy.js'
 import { getDistanceKm } from '../utils/geo.js'
+import { requireOwner } from '../utils/auth.js'
 
 const router = express.Router()
 
-// GET all medicines for one pharmacy (owner dashboard / inventory)
+// GET all medicines for one pharmacy (owner dashboard / inventory) — public read so profile pages work
 router.get('/', async (req, res) => {
   try {
     const filter = req.query.pharmacyId ? { pharmacy: req.query.pharmacyId } : {}
@@ -16,9 +17,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /search?name=paracetamol&lat=25.6&lng=85.1&radiusKm=5
-// Customer-facing: medicines matching a name, at approved pharmacies within radiusKm,
-// sorted cheapest first. This is the core "5km price comparison" endpoint.
+// GET /search?name=paracetamol&lat=25.6&lng=85.1&radiusKm=5 — customer-facing price comparison
 router.get('/search', async (req, res) => {
   try {
     const { name = '', lat, lng, radiusKm = 5 } = req.query
@@ -49,10 +48,10 @@ router.get('/search', async (req, res) => {
   }
 })
 
-// POST add a new medicine (owner adds stock)
-router.post('/', async (req, res) => {
+// POST add a new medicine — owner only, forced to their own pharmacy
+router.post('/', requireOwner, async (req, res) => {
   try {
-    const medicine = new Medicine(req.body)
+    const medicine = new Medicine({ ...req.body, pharmacy: req.auth.pharmacyId })
     await medicine.save()
     res.status(201).json(medicine)
   } catch (err) {
@@ -60,20 +59,24 @@ router.post('/', async (req, res) => {
   }
 })
 
-// PATCH update a medicine (edit / quantity stepper)
-router.patch('/:id', async (req, res) => {
+// PATCH update a medicine — owner only, and only their own
+router.patch('/:id', requireOwner, async (req, res) => {
   try {
-    const medicine = await Medicine.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    const medicine = await Medicine.findOne({ _id: req.params.id, pharmacy: req.auth.pharmacyId })
+    if (!medicine) return res.status(404).json({ error: 'Not found' })
+    Object.assign(medicine, req.body)
+    await medicine.save()
     res.json(medicine)
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
 })
 
-// DELETE a medicine
-router.delete('/:id', async (req, res) => {
+// DELETE a medicine — owner only, and only their own
+router.delete('/:id', requireOwner, async (req, res) => {
   try {
-    await Medicine.findByIdAndDelete(req.params.id)
+    const result = await Medicine.deleteOne({ _id: req.params.id, pharmacy: req.auth.pharmacyId })
+    if (result.deletedCount === 0) return res.status(404).json({ error: 'Not found' })
     res.status(204).end()
   } catch (err) {
     res.status(400).json({ error: err.message })

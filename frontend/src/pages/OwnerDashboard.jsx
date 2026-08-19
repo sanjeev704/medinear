@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api.js'
 
-// NOTE: without auth yet, this loads the first approved pharmacy as a demo.
-// Once you add login, swap this for the logged-in owner's own pharmacy.
 export default function OwnerDashboard() {
   const navigate = useNavigate()
   const [pharmacy, setPharmacy] = useState(null)
@@ -14,15 +12,12 @@ export default function OwnerDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const pharmaciesRes = await api.get('/api/pharmacies')
-        const first = pharmaciesRes.data[0]
-        setPharmacy(first || null)
-        if (first) {
-          const medsRes = await api.get('/api/medicines', { params: { pharmacyId: first._id } })
-          setInventory(medsRes.data)
-        }
+        const me = await api.get('/api/pharmacies/me')
+        setPharmacy(me.data)
+        const medsRes = await api.get('/api/medicines', { params: { pharmacyId: me.data._id } })
+        setInventory(medsRes.data)
       } catch {
-        setError('Could not reach the backend. Is the server running?')
+        setError('Could not load your pharmacy. Try signing in again.')
       } finally {
         setLoading(false)
       }
@@ -32,15 +27,7 @@ export default function OwnerDashboard() {
 
   if (loading) return <div className="page">Loading...</div>
   if (error) return <div className="page banner banner-destructive">{error}</div>
-  if (!pharmacy)
-    return (
-      <div className="page">
-        <p>No approved pharmacy yet. Register one, then have an admin approve it.</p>
-        <button className="btn btn-primary" onClick={() => navigate('/register-pharmacy')}>
-          Register a pharmacy
-        </button>
-      </div>
-    )
+  if (!pharmacy) return <div className="page">No pharmacy found.</div>
 
   const stockValue = inventory.reduce((sum, m) => sum + m.price * m.quantity, 0)
   const low = inventory.filter((m) => m.quantity > 0 && m.quantity <= 10).length
@@ -59,9 +46,19 @@ export default function OwnerDashboard() {
         </button>
       </div>
 
-      <div className="banner banner-success" style={{ marginTop: '1.2rem' }}>
-        ✓ Verified and live. Patients can find your stock in search.
-      </div>
+      {pharmacy.status === 'approved' ? (
+        <div className="banner banner-success" style={{ marginTop: '1.2rem' }}>
+          ✓ Verified and live. Patients can find your stock in search.
+        </div>
+      ) : pharmacy.status === 'pending' ? (
+        <div className="banner banner-warning" style={{ marginTop: '1.2rem' }}>
+          ⏳ Your application is pending admin approval. You can still add stock now — it'll show once approved.
+        </div>
+      ) : (
+        <div className="banner banner-destructive" style={{ marginTop: '1.2rem' }}>
+          Your application was rejected. Contact support for details.
+        </div>
+      )}
 
       <div className="feature-grid">
         <div className="card">

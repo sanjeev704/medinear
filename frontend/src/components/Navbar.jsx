@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { isLoggedIn, getRole, clearSession } from '../auth.js'
 
 const links = [
   { to: '/', label: 'Home' },
@@ -10,6 +11,14 @@ const links = [
 
 export default function Navbar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const loggedIn = isLoggedIn()
+  const role = getRole()
+
+  const handleSignOut = () => {
+    clearSession()
+    navigate('/')
+  }
 
   return (
     <nav className="navbar">
@@ -27,9 +36,15 @@ export default function Navbar() {
             {link.label}
           </Link>
         ))}
-        <Link to="/sign-in" className="btn btn-primary btn-sm">
-          Sign in
-        </Link>
+        {loggedIn ? (
+          <button className="btn btn-outline btn-sm" onClick={handleSignOut}>
+            Sign out {role === 'admin' ? '(Admin)' : ''}
+          </button>
+        ) : (
+          <Link to="/sign-in" className="btn btn-primary btn-sm">
+            Sign in
+          </Link>
+        )}
       </div>
     </nav>
   )

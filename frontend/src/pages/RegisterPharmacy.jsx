@@ -11,6 +11,7 @@ const emptyForm = {
   city: '',
   pincode: '',
   licenceNumber: '',
+  password: '',
 }
 
 export default function RegisterPharmacy() {
@@ -70,6 +71,10 @@ export default function RegisterPharmacy() {
             <div className="field">
               <label>Email</label>
               <input type="email" required value={form.email} onChange={handleChange('email')} />
+            </div>
+            <div className="field">
+              <label>Password (for logging into your dashboard)</label>
+              <input type="password" required minLength={6} value={form.password} onChange={handleChange('password')} placeholder="At least 6 characters" />
             </div>
           </div>
 

@@ -1,5 +1,6 @@
-import dns from 'node:dns'
-dns.setServers(['8.8.8.8'])
+import dns from 'dns'
+
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 import express from 'express'
 import mongoose from 'mongoose'
@@ -7,6 +8,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import medicineRoutes from './routes/medicines.js'
 import pharmacyRoutes from './routes/pharmacies.js'
+import authRoutes from './routes/auth.js'
 
 dotenv.config()
 
@@ -14,6 +16,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+app.use('/api/auth', authRoutes)
 app.use('/api/medicines', medicineRoutes)
 app.use('/api/pharmacies', pharmacyRoutes)
 
@@ -28,6 +31,6 @@ mongoose
   .connect(MONGO_URI)
   .then(() => {
     console.log('MongoDB connected')
-    app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`))
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
   })
   .catch((err) => console.error('MongoDB connection error:', err))
