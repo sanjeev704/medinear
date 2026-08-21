@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../api.js'
 import Badge, { stockStatus } from '../components/Badge.jsx'
 import PharmacyMap from '../components/PharmacyMap.jsx'
 import { defaultLocation } from '../data/mockData.js'
+import { fuzzySuggest } from '../utils/fuzzy.js'
 
 const RADIUS_KM = 5
+
+function directionsUrl(lat, lng) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+}
 
 export default function FindMedicine() {
   const [params] = useSearchParams()
@@ -15,6 +20,25 @@ export default function FindMedicine() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  const [allNames, setAllNames] = useState([])
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const boxRef = useRef(null)
+
+  // Load the full medicine-name list once, for client-side fuzzy suggestions
+  useEffect(() => {
+    api.get('/api/medicines/autocomplete').then((res) => setAllNames(res.data)).catch(() => {})
+  }, [])
+
+  // Close the dropdown on outside click
+  useEffect(() => {
+    const onClick = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setShowSuggestions(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
 
   const runSearch = async (name) => {
     if (!name.trim()) return
@@ -38,8 +62,23 @@ export default function FindMedicine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const handleQueryChange = (e) => {
+    const value = e.target.value
+    setQuery(value)
+    setSuggestions(fuzzySuggest(allNames, value))
+    setShowSuggestions(true)
+  }
+
+  const pickSuggestion = (name) => {
+    setQuery(name)
+    setShowSuggestions(false)
+    setSearched(true)
+    runSearch(name)
+  }
+
   const handleSearch = (e) => {
     e.preventDefault()
+    setShowSuggestions(false)
     setSearched(true)
     runSearch(query)
   }
@@ -51,12 +90,26 @@ export default function FindMedicine() {
         <p>Comparing prices across pharmacies within {RADIUS_KM}km of {location.label}.</p>
       </div>
 
-      <form className="search-bar" onSubmit={handleSearch} style={{ margin: '0 0 1.5rem' }}>
-        <input
-          placeholder="Paracetamol"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <form className="search-bar" onSubmit={handleSearch} style={{ margin: '0 0 1.5rem' }} ref={boxRef}>
+        <div className="search-input-wrap">
+          <input
+            placeholder="Paracetamol"
+            value={query}
+            onChange={handleQueryChange}
+            onFocus={() => query && setShowSuggestions(true)}
+            autoComplete="off"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="suggestions-dropdown">
+              {suggestions.map((s) => (
+                <div key={s.name} className="suggestion-item" onClick={() => pickSuggestion(s.name)}>
+                  <div>{s.name}</div>
+                  {s.composition && <div className="composition">{s.composition}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <button className="btn btn-primary" type="submit">
           Search
         </button>
@@ -95,7 +148,18 @@ export default function FindMedicine() {
                 <p className="list-item-meta">
                   📍 {r.pharmacy?.address} · {r.distanceKm?.toFixed(1)} km away
                 </p>
-                <p className="list-item-meta">📞 {r.pharmacy?.phone}</p>
+                <p className="list-item-meta">
+                  📞 {r.pharmacy?.phone}
+                  {' · '}
+                  <a
+                    className="directions-link"
+                    href={directionsUrl(r.pharmacy?.lat, r.pharmacy?.lng)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Get directions →
+                  </a>
+                </p>
               </div>
               <div className="list-item-price">
                 {r.mrp > r.price && <span className="old-price">₹{r.mrp.toFixed(2)}</span>}

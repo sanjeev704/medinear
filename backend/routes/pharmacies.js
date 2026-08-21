@@ -2,6 +2,7 @@ import express from 'express'
 import bcrypt from 'bcryptjs'
 import Pharmacy from '../models/Pharmacy.js'
 import { requireOwner, requireAdmin } from '../utils/auth.js'
+import { sendMail, newApplicationEmail, approvedEmail, rejectedEmail } from '../utils/email.js'
 
 const router = express.Router()
 
@@ -45,6 +46,13 @@ router.post('/', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10)
     const pharmacy = new Pharmacy({ ...rest, passwordHash, status: 'pending' })
     await pharmacy.save()
+
+    // Notify admin — fire and forget, never blocks the response
+    if (process.env.ADMIN_EMAIL) {
+      const { subject, html } = newApplicationEmail(pharmacy)
+      sendMail(process.env.ADMIN_EMAIL, subject, html)
+    }
+
     const { passwordHash: _omit, ...safe } = pharmacy.toObject()
     res.status(201).json(safe)
   } catch (err) {
@@ -58,6 +66,15 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
   try {
     const { status } = req.body // 'approved' | 'rejected'
     const pharmacy = await Pharmacy.findByIdAndUpdate(req.params.id, { status }, { new: true }).select('-passwordHash')
+
+    if (pharmacy && status === 'approved') {
+      const { subject, html } = approvedEmail(pharmacy)
+      sendMail(pharmacy.email, subject, html)
+    } else if (pharmacy && status === 'rejected') {
+      const { subject, html } = rejectedEmail(pharmacy)
+      sendMail(pharmacy.email, subject, html)
+    }
+
     res.json(pharmacy)
   } catch (err) {
     res.status(400).json({ error: err.message })

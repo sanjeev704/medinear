@@ -34,7 +34,14 @@ export default function PharmacyProfile() {
       <p style={{ color: 'var(--muted-foreground)' }}>📍 {pharmacy.address}</p>
       <div style={{ display: 'flex', gap: '0.6rem', margin: '0.8rem 0 1.5rem' }}>
         <button className="btn btn-primary btn-sm">📞 {pharmacy.phone}</button>
-        <button className="btn btn-outline btn-sm">Get directions</button>
+        <a
+          className="btn btn-outline btn-sm"
+          href={`https://www.google.com/maps/dir/?api=1&destination=${pharmacy.lat},${pharmacy.lng}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Get directions
+        </a>
       </div>
 
       <h3>Inventory ({inventory.length})</h3>

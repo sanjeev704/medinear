@@ -17,13 +17,34 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /search?name=paracetamol&lat=25.6&lng=85.1&radiusKm=5 — customer-facing price comparison
+// GET /autocomplete — distinct {name, composition} pairs for the search-bar suggestions dropdown
+router.get('/autocomplete', async (req, res) => {
+  try {
+    const meds = await Medicine.find().select('name composition -_id')
+    const seen = new Set()
+    const out = []
+    for (const m of meds) {
+      const key = m.name.toLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        out.push({ name: m.name, composition: m.composition || '' })
+      }
+    }
+    res.json(out)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /search?name=paracetamol&lat=25.6&lng=85.1&radiusKm=5
+// Matches by medicine name OR composition (so searching a salt name works too),
+// restricted to pharmacies within radius, sorted cheapest first.
 router.get('/search', async (req, res) => {
   try {
     const { name = '', lat, lng, radiusKm = 5 } = req.query
 
     const matches = await Medicine.find({
-      name: { $regex: name, $options: 'i' },
+      $or: [{ name: { $regex: name, $options: 'i' } }, { composition: { $regex: name, $options: 'i' } }],
     }).populate('pharmacy')
 
     let results = matches.filter((m) => m.pharmacy && m.pharmacy.status === 'approved')
