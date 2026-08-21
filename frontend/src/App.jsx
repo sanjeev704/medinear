@@ -4,6 +4,7 @@ import Footer from './components/Footer.jsx'
 import ProtectedRoute from './ProtectedRoute.jsx'
 import Home from './pages/Home.jsx'
 import FindMedicine from './pages/FindMedicine.jsx'
+import ScanMedicine from './pages/ScanMedicine.jsx'
 import PharmacyProfile from './pages/PharmacyProfile.jsx'
 import SignIn from './pages/SignIn.jsx'
 import RegisterPharmacy from './pages/RegisterPharmacy.jsx'
@@ -18,6 +19,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/find-medicine" element={<FindMedicine />} />
+        <Route path="/scan-medicine" element={<ScanMedicine />} />
         <Route path="/pharmacy/:id" element={<PharmacyProfile />} />
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/register-pharmacy" element={<RegisterPharmacy />} />
